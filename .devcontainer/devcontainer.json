@@ -1,0 +1,35 @@
+{
+    "name": "NBA Airflow",
+    "dockerComposeFile": "../docker-compose.yml",
+    "service": "airflow-webserver",
+    "workspaceFolder": "/opt/airflow",
+    "remoteUser": "airflow",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.pylint",
+                "ms-python.black-formatter",
+                "ms-python.isort",
+                "charliermarsh.ruff",
+                "ms-azuretools.vscode-docker"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "/home/airflow/.local/bin/python",
+                "editor.formatOnSave": true,
+                "editor.defaultFormatter": "ms-python.black-formatter",
+                "[python]": {
+                    "editor.defaultFormatter": "ms-python.black-formatter"
+                }
+            }
+        }
+    },
+    "forwardPorts": [8080],
+    "portsAttributes": {
+        "8080": {
+            "label": "Airflow Webserver",
+            "onAutoForward": "notify"
+        }
+    },
+    "postCreateCommand": "pip install --user poetry && poetry install --no-root"
+}

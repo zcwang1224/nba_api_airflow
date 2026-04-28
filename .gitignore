@@ -1,0 +1,25 @@
+# Airflow
+logs/
+airflow.db
+airflow-webserver.pid
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+.pytest_cache/
+*.egg-info/
+dist/
+.ruff_cache/
+
+# 環境變數（含敏感資訊）
+.env
+
+# IDE
+.DS_Store
+.vscode/settings.json
+
+# Claude Code 工具記憶體
+.claude/
