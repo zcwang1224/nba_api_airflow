@@ -31,5 +31,5 @@
             "onAutoForward": "notify"
         }
     },
-    "postCreateCommand": "pip install --user poetry && poetry install --no-root"
+    "postCreateCommand": "pip install poetry && poetry install --no-root"
 }
