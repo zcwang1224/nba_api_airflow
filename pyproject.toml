@@ -1,28 +1,3 @@
-[tool.poetry]
-name = "nba-airflow"
-version = "0.1.0"
-description = "NBA 數據爬取與分析 Airflow 專案"
-authors = ["zcwang <zcwang1224@gmail.com>"]
-readme = "README.md"
-packages = [{include = "dags"}]
-
-[tool.poetry.dependencies]
-python = ">=3.10,<3.13"
-apache-airflow = "2.9.3"
-requests = "^2.31.0"
-pandas = "^2.1.0"
-psycopg2-binary = "^2.9.9"
-sqlalchemy = "^1.4.0"
-beautifulsoup4 = "^4.12.0"
-lxml = "^5.0.0"
-nba-api = "^1.4.0"
-
-[tool.poetry.group.dev.dependencies]
-black = "^24.0.0"
-ruff = "^0.3.0"
-pytest = "^8.0.0"
-pytest-airflow = "^0.0.3"
-
 [tool.black]
 line-length = 100
 target-version = ["py310"]
@@ -30,7 +5,3 @@ target-version = ["py310"]
 [tool.ruff]
 line-length = 100
 select = ["E", "F", "I"]
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"

@@ -5,9 +5,9 @@
 
 ## 技術堆疊
 - 語言: Python 3.10+
-- 套件管理: Poetry
+- 套件管理: pip
 - 排程管理: Airflow 2.9.3
-- 資料庫: PostgreSQL 15
+- 資料庫: PostgreSQL/MongoDB
 - 容器: Docker / DevContainer
 
 ## 專案結構

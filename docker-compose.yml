@@ -11,6 +11,7 @@ x-airflow-common: &airflow-common
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
     AIRFLOW__WEBSERVER__SECRET_KEY: 'nba-airflow-secret-key'
+    MONGO_URI: 'mongodb://airflow:airflow@mongodb:27017/'
     _PIP_ADDITIONAL_REQUIREMENTS: ''
   volumes:
     - .:/opt/airflow
@@ -18,6 +19,8 @@ x-airflow-common: &airflow-common
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on: &airflow-common-depends-on
     postgres:
+      condition: service_healthy
+    mongodb:
       condition: service_healthy
 
 services:
@@ -35,6 +38,23 @@ services:
       retries: 5
       start_period: 5s
     restart: always
+
+  mongodb:
+    image: mongo:7.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: airflow
+      MONGO_INITDB_ROOT_PASSWORD: airflow
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   airflow-webserver:
     <<: *airflow-common
@@ -89,3 +109,4 @@ services:
 
 volumes:
   postgres-db-volume:
+  mongodb-data:
