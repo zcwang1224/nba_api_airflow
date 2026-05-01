@@ -17,6 +17,7 @@ nba_airflow-devcontainer/
 │   ├── devcontainer.json   # VSCode DevContainer 設定
 │   └── Dockerfile          # 自訂 Airflow 映像
 ├── dags/                   # Airflow DAG 定義
+├── history-data/           # 取得今日以前數據
 ├── example/                # nba_api 範例程式
 ├── logs/                   # Airflow 執行日誌（不提交）
 ├── plugins/                # Airflow 自訂 Plugin

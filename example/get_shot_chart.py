@@ -54,8 +54,17 @@ def get_game_shots(game_id: str) -> pd.DataFrame:
         shot_result, shot_distance, x, y, description
     """
     pbp = playbyplay.PlayByPlay(game_id=game_id).get_dict()["game"]
-    away = pbp["awayTeam"]["teamTricode"]
-    home = pbp["homeTeam"]["teamTricode"]
+
+    # Live endpoint omits awayTeam/homeTeam for completed/historical games
+    away = (pbp.get("awayTeam") or {}).get("teamTricode", "")
+    home = (pbp.get("homeTeam") or {}).get("teamTricode", "")
+
+    if not away or not home:
+        tricodes = list(dict.fromkeys(
+            a["teamTricode"] for a in pbp.get("actions", []) if a.get("teamTricode")
+        ))
+        away = tricodes[0] if len(tricodes) > 0 else ""
+        home = tricodes[1] if len(tricodes) > 1 else ""
 
     shots = [
         {

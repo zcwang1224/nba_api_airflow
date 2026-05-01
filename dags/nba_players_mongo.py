@@ -111,22 +111,55 @@ def fetch_player_stats(**context) -> dict[int, dict]:
     return stats
 
 
+def fetch_player_birthdays(**context) -> dict[int, str]:
+    """爬取現役球員生日（YYYY-MM-DD），推入 XCom（以 player_id 為 key）"""
+    import time
+
+    from nba_api.stats.endpoints import commonplayerinfo
+    from nba_api.stats.static import players
+
+    active_players = [p for p in players.get_players() if p["is_active"]]
+    birthdays: dict[int, str] = {}
+
+    for i, player in enumerate(active_players):
+        try:
+            df = commonplayerinfo.CommonPlayerInfo(player_id=player["id"]).get_data_frames()[0]
+            if not df.empty:
+                raw = df.iloc[0].get("BIRTHDATE", "")
+                if raw:
+                    birthdays[player["id"]] = str(raw)[:10]
+        except Exception as e:
+            print(f"無法取得 {player['full_name']} 的生日: {e}")
+
+        if (i + 1) % 20 == 0:
+            print(f"進度: {i + 1}/{len(active_players)}")
+        time.sleep(0.6)
+
+    print(f"取得 {len(birthdays)} 位現役球員生日")
+    return birthdays
+
+
 def save_to_mongo(**context):
-    """合併球員基本資料與本季場均數據，upsert 至 MongoDB nba.players"""
+    """合併球員基本資料、本季場均數據與生日，upsert 至 MongoDB nba.players"""
     from pymongo import MongoClient, UpdateOne
 
     ti = context["ti"]
     records: list[dict] = ti.xcom_pull(task_ids="fetch_players")
     stats: dict = ti.xcom_pull(task_ids="fetch_player_stats")
+    birthdays: dict = ti.xcom_pull(task_ids="fetch_player_birthdays")
 
     if not records:
         print("無球員資料可寫入")
         return
 
     stats = stats or {}
+    birthdays = birthdays or {}
 
     for doc in records:
         pid = doc["player_id"]
+        if pid in birthdays:
+            doc["birthdate"] = birthdays[pid]
+
         if pid in stats:
             s = stats[pid]
             doc["stats"] = {
@@ -182,9 +215,14 @@ with DAG(
         python_callable=fetch_player_stats,
     )
 
+    fetch_birthdays_task = PythonOperator(
+        task_id="fetch_player_birthdays",
+        python_callable=fetch_player_birthdays,
+    )
+
     save_task = PythonOperator(
         task_id="save_to_mongo",
         python_callable=save_to_mongo,
     )
 
-    [fetch_players_task, fetch_stats_task] >> save_task
+    [fetch_players_task, fetch_stats_task, fetch_birthdays_task] >> save_task
