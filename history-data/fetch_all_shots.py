@@ -35,7 +35,7 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 from nba_api.stats.endpoints import shotchartdetail
-from pymongo import MongoClient, UpdateOne
+from pymongo import MongoClient
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://airflow:airflow@mongodb:27017/")
 
@@ -138,21 +138,12 @@ def fetch_game_shots(game_id: str) -> pd.DataFrame:
     return df.reset_index(drop=True)
 
 
-def upsert_shots(collection, records: list[dict]) -> tuple[int, int]:
-    """Upsert 出手資料，回傳 (upserted, modified)。"""
+def insert_shots(collection, records: list[dict]) -> int:
+    """批次插入出手資料，回傳實際插入筆數；重複資料自動略過。"""
     if not records:
-        return 0, 0
-    ops = [
-        UpdateOne(
-            {"GAME_ID": r["GAME_ID"], "GAME_EVENT_ID": r["GAME_EVENT_ID"]},
-            {"$set": r},
-            upsert=False,
-        )
-        for r in records
-    ]
-    print(f"→ 執行 bulk_write，筆數 {len(ops)}")
-    result = collection.bulk_write(ops, ordered=False)
-    return result.upserted_count, result.modified_count
+        return 0
+    result = collection.insert_many(records, ordered=False)
+    return len(result.inserted_ids)
 
 
 def to_python_types(record: dict) -> dict:
@@ -200,13 +191,15 @@ def run(
         avg = elapsed / idx if idx > 1 else sleep_sec + 1.2
         eta = avg * (total - idx)
         pct = idx / total * 100
-        print(f"[{idx:>6}/{total}] {pct:5.1f}%  ETA {format_eta(eta)}  game={game_id}", end="  ")
+        print(f"[{idx:>6}/{total}] {pct:5.1f}%  ETA {format_eta(eta)}  game={game_id}")
 
         # 重試邏輯
         df = pd.DataFrame()
         for attempt in range(1, max_retries + 1):
             try:
+                t0 = time.time()
                 df = fetch_game_shots(game_id)
+                fetch_ms = (time.time() - t0) * 1000
                 break
             except Exception as e:
                 if attempt < max_retries:
@@ -218,15 +211,16 @@ def run(
 
         if df.empty:
             if game_id not in failed:
-                print("→ 無出手資料（可能是明星賽或資料缺漏）")
+                print(f"→ 無出手資料（可能是明星賽或資料缺漏）  fetch {fetch_ms:.0f}ms")
             time.sleep(sleep_sec)
             continue
-        print(f"→ 爬取 {len(df)} 筆出手資料")
+        print(f"→ 爬取 {len(df)} 筆出手資料  fetch {fetch_ms:.0f}ms")
         records = [to_python_types({**r, "updated_at": updated_at}) for r in df.to_dict("records")]
-        print("→ 寫入 MongoDB")
-        upserted, modified = upsert_shots(collection, records)
-        print(f"→ {len(records):>3} 筆  +{upserted} /{modified}✎")
-
+        t0 = time.time()
+        inserted = insert_shots(collection, records)
+        write_ms = (time.time() - t0) * 1000
+        print(f"→ {inserted:>3}/{len(records)} 筆寫入  write {write_ms:.0f}ms")
+        print("─" * 60)
         time.sleep(sleep_sec)
 
     client.close()
