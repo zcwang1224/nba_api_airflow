@@ -19,6 +19,8 @@ nba_airflow-devcontainer/
 ├── dags/                   # Airflow DAG 定義
 ├── history-data/           # 取得今日以前數據
 ├── example/                # nba_api 範例程式
+│   ├── devcontainer.json   # Live 端點（即時資料）
+│   └── live                # Stats 端點（歷史／統計資料）
 ├── logs/                   # Airflow 執行日誌（不提交）
 ├── plugins/                # Airflow 自訂 Plugin
 ├── config/                 # Airflow 設定檔

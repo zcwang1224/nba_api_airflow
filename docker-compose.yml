@@ -11,7 +11,7 @@ x-airflow-common: &airflow-common
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
     AIRFLOW__WEBSERVER__SECRET_KEY: 'nba-airflow-secret-key'
-    MONGO_URI: 'mongodb://airflow:airflow@mongodb:27017/'
+    MONGO_URI: 'mongodb://user:password@mongodb:27017/'
     _PIP_ADDITIONAL_REQUIREMENTS: ''
   volumes:
     - .:/opt/airflow
@@ -20,8 +20,8 @@ x-airflow-common: &airflow-common
   depends_on: &airflow-common-depends-on
     postgres:
       condition: service_healthy
-    mongodb:
-      condition: service_healthy
+    # mongodb:
+    #   condition: service_healthy
 
 services:
   postgres:
@@ -38,23 +38,8 @@ services:
       retries: 5
       start_period: 5s
     restart: always
-
-  mongodb:
-    image: mongo:7.0
-    restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: airflow
-      MONGO_INITDB_ROOT_PASSWORD: airflow
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb-data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
+    networks:
+      - nba_network
 
   airflow-webserver:
     <<: *airflow-common
@@ -68,6 +53,8 @@ services:
       retries: 5
       start_period: 30s
     restart: always
+    networks:
+      - nba_network
     depends_on:
       <<: *airflow-common-depends-on
       airflow-init:
@@ -83,6 +70,8 @@ services:
       retries: 5
       start_period: 30s
     restart: always
+    networks:
+      - nba_network
     depends_on:
       <<: *airflow-common-depends-on
       airflow-init:
@@ -104,9 +93,16 @@ services:
       _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
       _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
     user: "0:0"
+    networks:
+      - nba_network
     volumes:
       - .:/sources
 
+
 volumes:
   postgres-db-volume:
-  mongodb-data:
+  # mongodb-data:
+
+networks:
+  nba_network:
+    external: true
